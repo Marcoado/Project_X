@@ -74,9 +74,19 @@ try {
     $builtAny = $false
 
     if ($Gui) {
+        Write-Info "Verificando suporte ao tkinter..."
+        & $pythonExe -c "import tkinter, tkinter.ttk; print('tkinter OK')" 2>$null
+        if ($LASTEXITCODE -ne 0) {
+            Write-Err "tkinter não está disponível nesta instalação do Python."
+            Write-Host "Sugestões:" -ForegroundColor Yellow
+            Write-Host " - Instale o Python oficial de python.org (inclui Tcl/Tk)" -ForegroundColor Yellow
+            Write-Host " - Ou reinstale o Python garantindo a opção 'tcl/tk and IDLE'" -ForegroundColor Yellow
+            throw "Dependência ausente: tkinter"
+        }
         Write-Info "Gerando EXE GUI a partir de ui.py..."
+        $hiddenTk = @("--hidden-import","tkinter","--hidden-import","tkinter.ttk")
         & $pythonExe -m PyInstaller --noconfirm --onefile --windowed `
-            --name $Name @iconArgs @addData `
+            --name $Name @iconArgs @addData @hiddenTk `
             "$root/ui.py"
         $builtAny = $true
     }
