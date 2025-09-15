@@ -2,6 +2,38 @@
 
 A Python application that simulates computer activity by automatically generating mouse movements and keyboard inputs. This tool can be useful for keeping your computer active, testing applications, or simulating user behavior.
 
+## Modos de execução (resumo)
+
+- CLI (linha de comando):
+  - Windows PowerShell: `python main.py [opcoes]`
+  - WSL/Linux (bash): `python3 main.py [opcoes]`
+- GUI (interface gráfica): `python ui.py`
+- Serviço Windows (em segundo plano): `python service.py install | start | stop | remove` (executar como Administrador)
+- Serviço WSL/Linux (systemd – usuário): `./scripts/install_wsl_service.sh [--venv CAMINHO] [--user USUARIO]`
+
+Exemplos rápidos:
+
+```powershell
+# Windows PowerShell – executar com padrões
+python .\main.py
+
+# Windows PowerShell – abrir a interface gráfica
+python .\ui.py
+
+# Windows PowerShell – instalar e iniciar como serviço (Admin)
+python .\service.py install
+python .\service.py start
+```
+
+```bash
+# WSL/Linux – executar com padrões
+python3 ./main.py
+
+# WSL/Linux – instalar/ativar serviço de usuário (systemd)
+chmod +x ./scripts/install_wsl_service.sh
+./scripts/install_wsl_service.sh
+```
+
 ## Features
 
 - **Keyboard Simulation**: Automatically presses specified keys at configurable intervals (CPM - Clicks Per Minute)
@@ -206,6 +238,75 @@ Project_X/
 - **Windows Service**: Check Windows Event Viewer
 - **WSL Service**: Use `journalctl --user -u simulator.service`
 - **Command Line**: Output appears in terminal
+
+## Build do executável (Windows)
+
+### Script PowerShell (recomendado)
+
+Use o script `scripts/build_exe.ps1` para gerar um `.exe` portátil com PyInstaller.
+
+```powershell
+# Na raiz do projeto
+powershell -ExecutionPolicy Bypass -File .\scripts\build_exe.ps1 -Gui
+
+# Opções:
+# -Gui           Gera a versão GUI (ui.py). Padrão quando nada é informado
+# -Cli           Gera a versão de console (main.py)
+# -Name NAME     Nome do executável (padrão: Timerzone)
+# -Icon path.ico Ícone opcional
+# -Clean         Limpa pastas build/dist e .spec antes do build
+
+# Exemplos:
+powershell -ExecutionPolicy Bypass -File .\scripts\build_exe.ps1 -Gui -Name Timerzone -Icon .\icon.ico
+powershell -ExecutionPolicy Bypass -File .\scripts\build_exe.ps1 -Cli -Name Timerzone
+```
+
+Saída esperada: executáveis em `dist\Timerzone.exe` (GUI) e/ou `dist\TimerzoneCLI.exe` (CLI).
+
+Observações:
+- O script cria/ativa `.venv`, instala dependências e PyInstaller automaticamente.
+- `config.json` é empacotado junto ao `.exe` (pode ser removido do `--add-data` se preferir externo).
+- Para evitar console piscando na GUI, usamos o modo `--windowed`.
+
+### PyInstaller manual (alternativa)
+
+```powershell
+python -m venv .venv
+. .\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+pip install pyinstaller
+
+# GUI
+pyinstaller --noconfirm --onefile --windowed --name Timerzone \
+  --add-data "config.json;." ui.py
+
+# CLI (opcional)
+pyinstaller --noconfirm --onefile --console --name TimerzoneCLI \
+  --add-data "config.json;." main.py
+```
+
+### Instalador (opcional, Inno Setup)
+
+Após gerar `dist\Timerzone.exe`, crie um instalador “next-next-finish” com Inno Setup:
+
+```ini
+[Setup]
+AppName=Timerzone
+AppVersion=1.0.0
+DefaultDirName={autopf}\Timerzone
+DefaultGroupName=Timerzone
+OutputDir=dist
+OutputBaseFilename=Timerzone-Setup
+
+[Files]
+Source: "dist\Timerzone.exe"; DestDir: "{app}"; Flags: ignoreversion
+
+[Icons]
+Name: "{group}\Timerzone"; Filename: "{app}\Timerzone.exe"
+Name: "{userdesktop}\Timerzone"; Filename: "{app}\Timerzone.exe"
+```
+
+Resultado: um instalador `.exe` que cria atalhos no Menu Iniciar e Desktop.
 
 ## Contributing
 
